@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>최신보험수리학 ↔ IFRS17 보험회계해설서 대응 사이트</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>최신보험수리학</h1>
+      <p class="subtitle">↔ IFRS17 보험회계해설서 연계</p>
+      <input id="search" type="text" placeholder="장·절 검색 (예: 위험조정, 할인율, CSM)">
+    </div>
+    <nav id="toc"></nav>
+  </aside>
+  <main class="content">
+    <div id="welcome" class="welcome">
+      <h2>왼쪽 목차에서 최신보험수리학의 장·절을 선택하세요.</h2>
+      <p>최신보험수리학의 전개 순서를 기준으로, 각 절의 핵심 이론(직접 정리한 설명)과 그에 대응하는 IFRS17 보험회계해설서 원문 페이지를 함께 볼 수 있습니다.</p>
+      <ul>
+        <li><strong>깊은 매칭</strong>: 11장(보험부채 시가평가), 12장(보험부채 변동분석과 손익인식), 6장 일부(IFRS4/IFRS17 비교) — 절 단위로 정밀 대응</li>
+        <li><strong>개념 연결</strong>: 나머지 장 — 장 단위로 IFRS17과의 관련성을 설명</li>
+      </ul>
+      <p class="disclaimer">※ 최신보험수리학 원문은 저작권 보호 대상이라 이 사이트에는 원문 대신 직접 작성한 이론 요약만 싣습니다. IFRS17 보험회계해설서는 금융감독원이 공개 배포한 자료로, 원문 페이지 이미지를 그대로 표시합니다.</p>
+    </div>
+    <div id="viewer" class="viewer" hidden>
+      <div class="viewer-header">
+        <button id="backBtn" class="back-btn">← 목차</button>
+        <h2 id="viewerTitle"></h2>
+      </div>
+      <div id="viewerBody" class="viewer-body"></div>
+    </div>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
