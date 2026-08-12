@@ -424,6 +424,19 @@ function parseNum(s) {
   return Number(t.replace(/,/g, ""));
 }
 
+// 단위는 회사마다 다르다(실측: 삼성생명·DB손해보험은 백만원, 삼성화재는 억원).
+// 보고서 표 바로 앞의 "(단위 : ...)" 표기를 찾아 그대로 보여주고, 못 찾으면 단정하지 않는다.
+function renderUnitNote(c) {
+  const m = (c.contextBefore || "").match(/\(\s*단위\s*[:：][^)]*\)/g);
+  if (m && m.length) {
+    return `공시 원문에 표시된 단위: <b>${m[m.length - 1]}</b> — 표의 숫자는 가공 없이 그대로 옮긴 값입니다.`;
+  }
+  return (
+    "표의 숫자는 공시 원문을 가공 없이 그대로 옮긴 값입니다. 단위는 회사마다 백만원 또는 억원 등으로 " +
+    "다르게 표기되므로, 정확한 단위는 아래 DART 원문 표의 단위 표기를 확인하세요."
+  );
+}
+
 function renderKicsCandidate(c, idx, total) {
   const header = c.header || [];
   const cols = header.slice(1);
@@ -520,7 +533,7 @@ function renderKicsCandidate(c, idx, total) {
           ${rowHtml("비율", rt)}
         </tbody>
       </table></div>
-      <div class="unit-note">단위는 표에 표시된 값(통상 백만원, 비율은 %)을 공시 그대로 옮긴 것입니다.</div>
+      <div class="unit-note">${renderUnitNote(c)}</div>
 
       <h5 class="sub-h">사이트 검산 — 공시값과 비교</h5>
       ${checkHtml}

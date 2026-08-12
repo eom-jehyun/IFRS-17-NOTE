@@ -401,3 +401,21 @@ body {
 .qa-a { font-size: 13.5px; line-height: 1.85; color: var(--text); }
 .page-ref { font-size: 11.5px; color: var(--text-dim); margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--border); line-height: 1.6; }
 .cand-note { font-size: 11.5px; color: var(--deep); background: var(--deep-bg); border-radius: 4px; padding: 4px 9px; display: inline-block; margin-bottom: 6px; }
+
+/* 첫 화면 프로젝트 소개 (공개용) */
+.intro { border-bottom: 1px solid var(--border); padding-bottom: 18px; margin-bottom: 20px; }
+.intro-lead { font-size: 15px; line-height: 1.8; margin: 0 0 14px; }
+.intro-flow {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 14px;
+}
+.intro-flow span {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+  padding: 7px 11px; font-size: 12px; font-weight: 700; line-height: 1.45; text-align: center;
+}
+.intro-flow span small { font-weight: 400; color: var(--text-dim); font-size: 10.5px; }
+.intro-flow i { color: var(--accent); font-style: normal; font-weight: 700; }
+.intro-note { font-size: 12.5px; line-height: 1.8; color: var(--text-dim); margin: 0; }
+@media (max-width: 720px) {
+  .intro-flow { gap: 4px; }
+  .intro-flow span { padding: 5px 8px; font-size: 11px; }
+}
