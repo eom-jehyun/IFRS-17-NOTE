@@ -42,21 +42,27 @@ async function fetchAccountsOneYear(corpCode, bsnsYear, fsDiv) {
 /**
  * 최근 N개 사업연도의 재무제표를 연결(CFS) 우선, 실패 시 개별(OFS)로 대체하여 가져온다.
  * 각 연도는 독립적으로 CFS/OFS를 시도한다 (연도별로 연결/개별이 섞일 수 있음을 호출부에 알려준다).
+ *
+ * 성능: 연도를 순차로 돌면 DART 왕복이 최대 (연도수 × 2)회 직렬로 쌓여 매우 느려진다.
+ * (프로덕션 실측: 순차 방식으로 39초) 그래서 후보 연도를 병렬로 조회하고,
+ * 선택 로직(최신순으로 CFS 우선, 없으면 OFS, 최대 yearsCount개)은 그대로 유지한다.
  */
 async function fetchRecentYears(corpCode, yearsCount = 3) {
   const years = candidateYears(yearsCount + 1); // 여유분 포함해서 시도
-  const results = [];
-  for (const year of years) {
-    if (results.length >= yearsCount) break;
-    for (const fsDiv of ["CFS", "OFS"]) {
-      const items = await fetchAccountsOneYear(corpCode, year, fsDiv);
-      if (items) {
-        results.push({ bsnsYear: year, fsDiv, items });
-        break;
-      }
-    }
-  }
-  return results; // 최신순
+
+  const perYear = await Promise.all(
+    years.map(async (year) => {
+      // 한 연도 안에서는 CFS를 먼저 보고, 없을 때만 OFS를 본다(우선순위 유지).
+      const cfs = await fetchAccountsOneYear(corpCode, year, "CFS");
+      if (cfs) return { bsnsYear: year, fsDiv: "CFS", items: cfs };
+      const ofs = await fetchAccountsOneYear(corpCode, year, "OFS");
+      if (ofs) return { bsnsYear: year, fsDiv: "OFS", items: ofs };
+      return null;
+    })
+  );
+
+  // years는 최신순이므로 그 순서대로 성공한 것만 골라 앞에서 yearsCount개를 취한다.
+  return perYear.filter(Boolean).slice(0, yearsCount);
 }
 
 async function fetchDisclosureList(corpCode, { bgnDe, endDe, pblntfTy = "A" } = {}) {
