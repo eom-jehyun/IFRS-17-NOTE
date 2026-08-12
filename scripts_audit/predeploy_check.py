@@ -152,6 +152,10 @@ if 'Access-Control-Allow-Origin", "*"' in cors:
     bad("CORS가 와일드카드(*)로 열려 있음")
 else:
     ok("CORS 와일드카드 아님")
+if re.search(r'setHeader\(\s*"Vary"\s*,\s*"Origin"', cors):
+    ok("Vary: Origin 설정됨 (CDN이 origin별로 캐시 분리 — 캐시 오염 방지)")
+else:
+    bad("Vary: Origin 누락 — 제3자 요청이 캐시를 오염시켜 사이트가 차단될 수 있음")
 
 print("\n" + "=" * 62)
 print(f"FAIL {len(fail)}건 / WARN {len(warn)}건")

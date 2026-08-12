@@ -16,6 +16,12 @@ function applyCors(req, res, sMaxAge = 3600) {
   if (origin && ALLOWED_ORIGINS.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
+  // Vary: Origin 은 반드시 필요하다.
+  // 응답이 요청 Origin에 따라 달라지는데 CDN이 이를 캐시 키에 넣지 않으면,
+  // 제3자가 임의 Origin으로 먼저 호출해 'ACAO 헤더 없는 응답'을 캐시에 올려두면
+  // 이후 우리 사이트(github.io)가 그 캐시본을 받아 브라우저에서 차단된다.
+  // (프로덕션에서 실제로 재현 확인함: evil origin MISS → github.io HIT → ACAO 없음)
+  res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Cache-Control", `s-maxage=${sMaxAge}, stale-while-revalidate=600`);
