@@ -19,6 +19,7 @@
         <button class="mode-btn active" data-mode="ifrs17">IFRS17 해설서</button>
         <button class="mode-btn" data-mode="actuary">최신보험수리학</button>
         <button class="mode-btn" data-mode="kics">K-ICS</button>
+        <button class="mode-btn" data-mode="company">보험사 분석</button>
       </div>
       <input id="search" type="text" placeholder="검색 (예: 위험조정, 할인율, CSM)">
     </div>
@@ -41,6 +42,15 @@
       <div id="welcomeKics" hidden>
         <p>금융감독원이 공개 배포한 「보험회사 新지급여력제도(K-ICS) 해설서」의 실제 목차 순서(Ⅰ~Ⅵ) 그대로 원문 페이지를 확인할 수 있습니다. 최신보험수리학과 계리적으로 직접 연결되는 절(사망위험액·해지위험액·할인율·위험마진 등)에는 <strong>[관련 이론]</strong> 탭에 연결 설명이 붙어 있습니다.</p>
       </div>
+      <div id="welcomeCompany" hidden>
+        <p>실제 보험회사의 공시 숫자에서 출발해, 그 숫자가 <strong>어떤 회계기준</strong>과 <strong>어떤 수리적 원리</strong>를 거쳐 만들어졌는지 거꾸로 따라갈 수 있습니다. 왼쪽에서 보험회사를 선택하세요.</p>
+        <ul>
+          <li><strong>IFRS17 탭</strong> — 최근 3개 사업연도 보험계약부채·보험수익 등 주요 계정과 증감. 각 계정에서 해설서 해당 절과 보험수리학 이론으로 이동할 수 있습니다.</li>
+          <li><strong>K-ICS 탭</strong> — 공시된 지급여력비율·가용자본·요구자본과 그 변화의 산술적 분해.</li>
+          <li><strong>출처 탭</strong> — 모든 숫자의 사업연도·보고서명·접수번호와 DART 원문 링크.</li>
+        </ul>
+        <p class="disclaimer">※ 데이터는 금융감독원 OpenDART API에서 실시간으로 조회합니다. 사이트는 공시된 숫자만 표시하고, 확보되지 않은 값을 추정하거나 0으로 처리하지 않습니다. K-ICS는 일반 재무제표로부터 역산하지 않습니다.</p>
+      </div>
       <p class="disclaimer">※ IFRS17 보험회계해설서·K-ICS 해설서는 금융감독원이 공개 배포한 자료로, 원문 페이지 이미지를 그대로 표시합니다. 최신보험수리학은 저작권 보호 대상이라 원문 대신 필자가 이해한 내용을 새로 정리했습니다.</p>
     </div>
     <div id="viewer" class="viewer" hidden>
@@ -56,6 +66,8 @@
     </div>
   </main>
 </div>
+<script src="config.js"></script>
+<script src="company.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

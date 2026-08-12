@@ -30,6 +30,20 @@ function switchMode(mode) {
   document.getElementById("welcomeIfrs17").hidden = true;
   document.getElementById("welcomeActuary").hidden = true;
   document.getElementById("welcomeKics").hidden = true;
+  document.getElementById("welcomeCompany").hidden = true;
+
+  if (mode === "company") {
+    document.getElementById("sidebarTitle").textContent = "보험사 분석";
+    document.getElementById("sidebarSubtitle").textContent = "실제 공시 → IFRS17 · K-ICS → 수리적 원리";
+    document.getElementById("welcomeTitle").textContent = "왼쪽에서 보험회사를 선택하세요.";
+    document.getElementById("welcomeCompany").hidden = false;
+    document.getElementById("tabBar").hidden = true;
+    document.getElementById("search").placeholder = "보험회사명 검색 (예: 삼성생명, DB손해보험)";
+    showWelcome();
+    renderTOC();
+    return;
+  }
+  document.getElementById("search").placeholder = "검색 (예: 위험조정, 할인율, CSM)";
 
   if (mode === "ifrs17") {
     document.getElementById("sidebarTitle").textContent = "IFRS17 보험회계해설서";
@@ -59,6 +73,7 @@ function renderTOC() {
   nav.innerHTML = "";
   if (MODE === "ifrs17") renderIfrsTOC(nav);
   else if (MODE === "actuary") renderActTOC(nav);
+  else if (MODE === "company") renderCompanyTOC(nav);
   else renderKicsTOC(nav);
 }
 
@@ -122,11 +137,14 @@ function openKicsItem(ch, it) {
   currentPage = it.pageStart;
 
   const body = document.getElementById("viewerBody");
-  const theoryHtml = it.connect
-    ? `<div class="theory-panel"><div class="theory-block">
-         <div class="connect-box"><span class="label">최신보험수리학과의 연결</span>${it.connect}</div>
-       </div></div>`
-    : `<div class="theory-panel"><div class="general-note">이 절은 최신보험수리학과 직접 대응되는 이론이 없는 일반 금융·회계 영역입니다.</div></div>`;
+  const explainHtml = renderKicsExplain(it);
+  const connectHtml = it.connect
+    ? `<div class="connect-box"><span class="label">최신보험수리학과의 연결</span>${it.connect}</div>`
+    : "";
+  const theoryHtml =
+    explainHtml || connectHtml
+      ? `<div class="theory-panel"><div class="theory-block">${explainHtml}${connectHtml}</div></div>`
+      : `<div class="theory-panel"><div class="general-note">이 절은 최신보험수리학과 직접 대응되는 이론이 없는 일반 금융·회계 영역입니다.</div></div>`;
 
   body.innerHTML = `
     <div class="tab-pane active" id="pane-source"><div class="source-viewer" id="sourcePane"></div></div>
@@ -135,6 +153,40 @@ function openKicsItem(ch, it) {
   renderKicsSourcePane();
   document.querySelectorAll(".tab-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.tab === "source"));
   wireTabs();
+  // 새로 추가된 K-ICS 산출식(LaTeX)을 렌더하고, 보험수리학 이동 chip을 연결한다.
+  renderMath(body);
+  body.querySelectorAll("[data-actkey]").forEach((b) =>
+    b.addEventListener("click", () => jumpToAct(b.dataset.actkey))
+  );
+}
+
+// K-ICS 산출구조 해설 렌더링. 내용은 모두 K-ICS 해설서 원문에서 확인된 것이며 근거 페이지를 함께 표시한다.
+function renderKicsExplain(it) {
+  const ex = it.explain;
+  if (!ex) return "";
+  const qa = (ex.questions || [])
+    .map((x) => `<div class="qa"><div class="qa-q">${x.q}</div><div class="qa-a">${x.a}</div></div>`)
+    .join("");
+  const lineage = (ex.lineage || []).map((l) => `<span class="chip">${l}</span>`).join("");
+  const al = ex.actuarialLink;
+  const alHtml = al
+    ? `<div class="field">
+         <span class="label">보험수리학과의 연결</span>
+         <div class="theory-text">${al.note}</div>
+         <div class="chips">${(al.items || [])
+           .map((k) => `<button class="chip clickable" data-actkey="${k}">${k.replace(":", "장 ")}</button>`)
+           .join("")}</div>
+         ${al.boundary ? `<div class="ifrs-boundary"><span class="boundary-label">연결의 한계</span>${al.boundary}</div>` : ""}
+       </div>`
+    : "";
+  return `
+    <h3 class="kics-ex-h">${ex.heading}</h3>
+    ${ex.formula ? `<div class="field"><span class="label">산출식</span><div class="formula-text">$$${escapeLatex(ex.formula)}$$</div>${ex.formulaNote ? `<p class="panel-note small">${ex.formulaNote}</p>` : ""}</div>` : ""}
+    ${qa ? `<div class="field"><span class="label">핵심 질문</span>${qa}</div>` : ""}
+    ${lineage ? `<div class="field"><span class="label">아래로 내려가기 (Lineage)</span><div class="chips">${lineage}</div></div>` : ""}
+    ${alHtml}
+    <p class="page-ref">근거 — ${ex.sourceLabel}. 위 [해설서 원문] 탭에서 해당 페이지를 직접 확인할 수 있습니다.</p>
+  `;
 }
 
 function renderIfrsTOC(nav) {
@@ -315,6 +367,14 @@ const STRENGTH_CLASS = {
   "직접 대응 없음": "s-none",
 };
 
+// 연결의 성격 — 수리적 연결과 IFRS17 고유 회계처리를 구분해 표시한다.
+// (교재 11~12장처럼 IFRS17 자체를 서술하는 절은 '수리적 기반'이 아니라 회계처리 대응이다)
+const NATURE_CLASS = {
+  "수리적 기반": "n-math",
+  "IFRS17 고유 회계처리": "n-acct",
+  "혼합": "n-mixed",
+};
+
 function openActItem(ch, part, item) {
   document.getElementById("welcome").hidden = true;
   document.getElementById("viewer").hidden = false;
@@ -361,9 +421,13 @@ function openActItem(ch, part, item) {
 
           <div class="field ifrs-field">
             <span class="label">⑪ IFRS17 연결</span>
-            <div class="ifrs-strength ${strengthClass}">${ifrs.strength}</div>
+            <div class="strength-row">
+              <span class="ifrs-strength ${strengthClass}">${ifrs.strength}</span>
+              ${ifrs.nature ? `<span class="ifrs-nature ${NATURE_CLASS[ifrs.nature] || ""}">${ifrs.nature}</span>` : ""}
+            </div>
             ${ifrs.items && ifrs.items.length ? `<ul class="plain-list">${ifrs.items.map((i) => `<li>${i}</li>`).join("")}</ul>` : ""}
             ${ifrs.note ? `<div class="ifrs-note">${ifrs.note}</div>` : ""}
+            ${ifrs.boundary ? `<div class="ifrs-boundary"><span class="boundary-label">연결의 한계 — 어디까지 같고 어디부터 다른가</span>${ifrs.boundary}</div>` : ""}
           </div>
 
           <p class="page-ref">출처 — 『최신보험수리학』 제${ch.num}장 ${ch.title} ${part.label}, p.${item.page} 내용을 참고하여 필자가 재구성 (원문 문장 인용 아님)</p>
@@ -423,6 +487,11 @@ function onSearch(e) {
   const q = e.target.value.trim();
   const nav = document.getElementById("toc");
   if (!q) {
+    renderTOC();
+    return;
+  }
+  // 보험사 분석 모드에서는 회사명 검색이므로 목차 렌더러가 직접 필터링한다.
+  if (MODE === "company") {
     renderTOC();
     return;
   }

@@ -1,0 +1,9 @@
+{
+  "name": "ifrs17-site-web-api",
+  "private": true,
+  "version": "1.0.0",
+  "description": "정적 프론트(GitHub Pages)와 별도로 Vercel에 올라가는 DART 연동 서버리스 함수(api/) 전용 package.json",
+  "dependencies": {
+    "adm-zip": "^0.5.18"
+  }
+}
