@@ -15,30 +15,47 @@ function renderTOC() {
     const chapterEl = document.createElement("div");
     chapterEl.className = "chapter";
 
-    const titleEl = document.createElement("div");
-    titleEl.className = "chapter-title";
-    const badge = ch.depth === "deep" ? `<span class="badge deep">정밀매칭</span>` : `<span class="badge brief">개념연결</span>`;
-    titleEl.innerHTML = `<span>제${ch.num}장 ${ch.title}</span>${badge}`;
+    const chTitleEl = document.createElement("div");
+    chTitleEl.className = "chapter-title";
+    chTitleEl.textContent = `제${ch.num}장 ${ch.title}`;
 
-    const sectionsEl = document.createElement("div");
-    sectionsEl.className = "sections";
-    for (const sec of ch.sections || []) {
+    const sectionsWrap = document.createElement("div");
+    sectionsWrap.className = "sections";
+
+    for (const sec of ch.sections) {
       const secEl = document.createElement("div");
-      secEl.className = "section-item";
-      secEl.textContent = sec.title;
-      secEl.addEventListener("click", (e) => {
-        e.stopPropagation();
-        openSection(ch, sec);
-        document.querySelectorAll(".section-item").forEach((n) => n.classList.remove("active"));
-        secEl.classList.add("active");
-      });
-      sectionsEl.appendChild(secEl);
+      secEl.className = "section";
+
+      const secTitleEl = document.createElement("div");
+      secTitleEl.className = "section-title";
+      secTitleEl.innerHTML = `<span class="dot ${sec.general ? "general" : "theory"}"></span><span>${sec.secTitle}</span>`;
+
+      const itemsWrap = document.createElement("div");
+      itemsWrap.className = "items";
+
+      for (const item of sec.items) {
+        const itemEl = document.createElement("div");
+        itemEl.className = "item";
+        const label = item.code ? `${item.code} ${item.title}` : item.title;
+        itemEl.innerHTML = `<span class="dot ${item.theory ? "theory" : "general"}"></span><span>${label}</span>`;
+        itemEl.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openItem(ch, sec, item);
+          document.querySelectorAll(".item").forEach((n) => n.classList.remove("active"));
+          itemEl.classList.add("active");
+        });
+        itemsWrap.appendChild(itemEl);
+      }
+
+      secTitleEl.addEventListener("click", () => itemsWrap.classList.toggle("open"));
+      secEl.appendChild(secTitleEl);
+      secEl.appendChild(itemsWrap);
+      sectionsWrap.appendChild(secEl);
     }
 
-    titleEl.addEventListener("click", () => sectionsEl.classList.toggle("open"));
-
-    chapterEl.appendChild(titleEl);
-    chapterEl.appendChild(sectionsEl);
+    chTitleEl.addEventListener("click", () => sectionsWrap.classList.toggle("open"));
+    chapterEl.appendChild(chTitleEl);
+    chapterEl.appendChild(sectionsWrap);
     nav.appendChild(chapterEl);
   }
 }
@@ -49,85 +66,83 @@ function showWelcome() {
 }
 
 function imgSrc(pageIndex) {
-  const idx = String(pageIndex).padStart(4, "0");
-  return `images/ifrs17/${idx}.jpg`;
+  return `images/ifrs17/${String(pageIndex).padStart(4, "0")}.jpg`;
 }
 
-function pageNavHtml(pageIndex, total) {
-  return `<div class="page-nav">
-    <button class="prev">◀</button>
-    <span class="pageLabel">${pageIndex + 1} / ${total}</span>
-    <button class="next">▶</button>
-  </div>`;
-}
+let currentPage = 0;
 
-function renderIfrs17Pane(container, pageIndex, label) {
+function renderSourcePane() {
   const total = TOC.pageCounts.ifrs17;
-  pageIndex = Math.max(0, Math.min(total - 1, pageIndex));
-  container.innerHTML = `
+  currentPage = Math.max(0, Math.min(total - 1, currentPage));
+  const wrap = document.getElementById("sourcePane");
+  wrap.innerHTML = `
     <div class="pane-header">
-      <span>${label}</span>
-      ${pageNavHtml(pageIndex, total)}
+      <span>IFRS17 보험회계해설서 원문</span>
+      <div class="page-nav">
+        <button id="prevBtn">◀ 이전</button>
+        <span>${currentPage + 1} / ${total}</span>
+        <button id="nextBtn">다음 ▶</button>
+      </div>
     </div>
-    <div class="page-img-wrap">
-      <img src="${imgSrc(pageIndex)}">
-    </div>
+    <div class="page-img-wrap"><img src="${imgSrc(currentPage)}"></div>
   `;
-  const img = container.querySelector("img");
-  const pageLabel = container.querySelector(".pageLabel");
-  container.querySelector(".prev").addEventListener("click", () => {
-    if (pageIndex > 0) {
-      pageIndex -= 1;
-      img.src = imgSrc(pageIndex);
-      pageLabel.textContent = `${pageIndex + 1} / ${total}`;
-    }
-  });
-  container.querySelector(".next").addEventListener("click", () => {
-    if (pageIndex < total - 1) {
-      pageIndex += 1;
-      img.src = imgSrc(pageIndex);
-      pageLabel.textContent = `${pageIndex + 1} / ${total}`;
-    }
-  });
+  document.getElementById("prevBtn").addEventListener("click", () => { currentPage -= 1; renderSourcePane(); });
+  document.getElementById("nextBtn").addEventListener("click", () => { currentPage += 1; renderSourcePane(); });
 }
 
-function openSection(ch, sec) {
+function openItem(ch, sec, item) {
   document.getElementById("welcome").hidden = true;
   const viewer = document.getElementById("viewer");
   viewer.hidden = false;
-  document.getElementById("viewerTitle").textContent = `제${ch.num}장 ${ch.title} — ${sec.title}`;
+  const label = item.code ? `${item.code} ${item.title}` : item.title;
+  document.getElementById("viewerTitle").textContent = `제${ch.num}장 ${ch.title} / ${sec.secTitle} — ${label}`;
+
+  currentPage = item.pageStart;
 
   const body = document.getElementById("viewerBody");
-  const refs = sec.refs || [];
-
-  let refsHtml = "";
-  if (refs.length === 0) {
-    refsHtml = `<div class="no-match">이 절에 대한 IFRS17 해설서 대응 항목이 아직 등록되지 않았습니다.</div>`;
+  let theoryHtml;
+  if (item.theory) {
+    theoryHtml = `
+      <div class="theory-panel">
+        <div class="theory-block">
+          ${item.code ? `<span class="item-code">${item.code}</span>` : ""}
+          <h3>${item.title}</h3>
+          <div class="theory-text">${item.theory}</div>
+          ${item.connect ? `<div class="connect-box"><span class="label">최신보험수리학과의 연결</span>${item.connect}</div>` : ""}
+        </div>
+      </div>
+    `;
   } else {
-    refsHtml = `<ul class="ref-list">` + refs.map((r) => `<li>
-        <div><strong>${r.title}</strong> (p.${r.pageLabel || "-"})</div>
-        <div class="path">IFRS17 보험회계해설서</div>
-      </li>`).join("") + `</ul>`;
+    theoryHtml = `
+      <div class="theory-panel">
+        <div class="general-note">${item.note || "이 절은 최신보험수리학과 직접 대응되는 이론이 없는 일반 회계 영역입니다."}</div>
+      </div>
+    `;
   }
 
   body.innerHTML = `
-    <div class="panes">
-      <div class="pane left">
-        <div class="pane-header"><span>최신보험수리학 — 핵심 이론</span></div>
-        <div class="theory-box">${sec.theory || "이론 요약이 아직 작성되지 않았습니다."}</div>
-      </div>
-      <div class="pane right">
-        <div class="pane-header"><span>대응하는 IFRS17 해설서 절</span></div>
-        ${refsHtml}
-        ${refs.length ? `<div id="rightImgPane"></div>` : ""}
-        ${sec.note ? `<div class="explain-box"><h4>연결 설명</h4>${sec.note}</div>` : ""}
-      </div>
+    <div class="tab-pane active" id="pane-source">
+      <div class="source-viewer" id="sourcePane"></div>
     </div>
+    <div class="tab-pane" id="pane-theory">${theoryHtml}</div>
   `;
+  renderSourcePane();
 
-  if (refs.length) {
-    renderIfrs17Pane(document.getElementById("rightImgPane"), refs[0].pageStart, refs[0].title);
-  }
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === "source");
+  });
+  wireTabs();
+}
+
+function wireTabs() {
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.onclick = () => {
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".tab-pane").forEach((p) => p.classList.remove("active"));
+      document.getElementById(`pane-${btn.dataset.tab}`).classList.add("active");
+    };
+  });
 }
 
 function onSearch(e) {
@@ -139,9 +154,12 @@ function onSearch(e) {
   }
   const results = [];
   for (const ch of TOC.chapters) {
-    for (const sec of ch.sections || []) {
-      if (sec.title.includes(q) || (sec.note && sec.note.includes(q)) || (sec.theory && sec.theory.includes(q))) {
-        results.push({ ch, sec });
+    for (const sec of ch.sections) {
+      for (const item of sec.items) {
+        const hay = [item.title, item.theory, item.connect, item.note].filter(Boolean).join(" ");
+        if (hay.includes(q) || sec.secTitle.includes(q)) {
+          results.push({ ch, sec, item });
+        }
       }
     }
   }
@@ -151,11 +169,12 @@ function onSearch(e) {
     rc.innerHTML = `<div class="no-match">검색 결과가 없습니다.</div>`;
     return;
   }
-  for (const { ch, sec } of results) {
+  for (const { ch, sec, item } of results) {
     const el = document.createElement("div");
     el.className = "search-result-item";
-    el.innerHTML = `${sec.title}<div class="path">제${ch.num}장 ${ch.title}</div>`;
-    el.addEventListener("click", () => openSection(ch, sec));
+    const label = item.code ? `${item.code} ${item.title}` : item.title;
+    el.innerHTML = `${label}<div class="path">제${ch.num}장 ${ch.title} / ${sec.secTitle}</div>`;
+    el.addEventListener("click", () => openItem(ch, sec, item));
     rc.appendChild(el);
   }
 }
