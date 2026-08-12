@@ -47,22 +47,30 @@ async function fetchAccountsOneYear(corpCode, bsnsYear, fsDiv) {
  * (프로덕션 실측: 순차 방식으로 39초) 그래서 후보 연도를 병렬로 조회하고,
  * 선택 로직(최신순으로 CFS 우선, 없으면 OFS, 최대 yearsCount개)은 그대로 유지한다.
  */
+async function fetchOneYearWithFallback(corpCode, year) {
+  // 한 연도 안에서는 CFS를 먼저 보고, 없을 때만 OFS를 본다(우선순위 유지).
+  const cfs = await fetchAccountsOneYear(corpCode, year, "CFS");
+  if (cfs) return { bsnsYear: year, fsDiv: "CFS", items: cfs };
+  const ofs = await fetchAccountsOneYear(corpCode, year, "OFS");
+  if (ofs) return { bsnsYear: year, fsDiv: "OFS", items: ofs };
+  return null;
+}
+
 async function fetchRecentYears(corpCode, yearsCount = 3) {
-  const years = candidateYears(yearsCount + 1); // 여유분 포함해서 시도
+  const years = candidateYears(yearsCount + 1); // 여유분 포함한 후보 목록
 
-  const perYear = await Promise.all(
-    years.map(async (year) => {
-      // 한 연도 안에서는 CFS를 먼저 보고, 없을 때만 OFS를 본다(우선순위 유지).
-      const cfs = await fetchAccountsOneYear(corpCode, year, "CFS");
-      if (cfs) return { bsnsYear: year, fsDiv: "CFS", items: cfs };
-      const ofs = await fetchAccountsOneYear(corpCode, year, "OFS");
-      if (ofs) return { bsnsYear: year, fsDiv: "OFS", items: ofs };
-      return null;
-    })
-  );
-
-  // years는 최신순이므로 그 순서대로 성공한 것만 골라 앞에서 yearsCount개를 취한다.
-  return perYear.filter(Boolean).slice(0, yearsCount);
+  // 필요한 개수만큼만 먼저 병렬 조회한다. 대부분의 회사는 최근 3개년이 모두 있어
+  // 이 한 번(3회 호출)으로 끝나고, 여유 후보연도까지 조회하는 낭비가 사라진다.
+  // (프로덕션 실측: 후보 5개년 × CFS/OFS 최대 10회를 매번 조회해 39초가 걸렸다)
+  const collected = [];
+  for (let i = 0; i < years.length && collected.length < yearsCount; ) {
+    const need = yearsCount - collected.length;
+    const batch = years.slice(i, i + need);
+    const got = await Promise.all(batch.map((y) => fetchOneYearWithFallback(corpCode, y)));
+    collected.push(...got.filter(Boolean));
+    i += batch.length;
+  }
+  return collected.slice(0, yearsCount); // 최신순
 }
 
 async function fetchDisclosureList(corpCode, { bgnDe, endDe, pblntfTy = "A" } = {}) {
