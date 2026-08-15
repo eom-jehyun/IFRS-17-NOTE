@@ -36,6 +36,14 @@ else:
     bad("regression_check.py 실패 — 아래 출력 확인")
     print(r.stdout[-1500:])
 
+print("\n[A-2] LaTeX 명령어 토큰 검사")
+r2 = subprocess.run([sys.executable, "scripts_audit/check_latex_tokens.py"], capture_output=True, text=True, encoding="utf-8")
+if r2.returncode == 0:
+    ok("모든 LaTeX 명령어가 KaTeX 렌더 가능 (알 수 없는 명령 없음)")
+else:
+    bad("알 수 없는 LaTeX 명령 존재 — KaTeX 렌더 실패 가능")
+    print(r2.stdout[-1200:])
+
 print("\n[B] Vercel 배포 구조")
 if os.path.exists("vercel.json"):
     v = json.load(open("vercel.json", encoding="utf-8"))
