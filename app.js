@@ -375,6 +375,38 @@ const NATURE_CLASS = {
   "혼합": "n-mixed",
 };
 
+// 예제 렌더링. 교재 예제를 옮긴 것이 아니라 이론을 바탕으로 새로 만든 문제이며,
+// 모든 수치는 scripts_audit/add_examples_*.py 의 verify() 로 재계산 검증한 값이다.
+function renderExamples(item) {
+  const ex = item.examples;
+  if (!ex || !ex.length) return "";
+  const blocks = ex
+    .map((e, idx) => {
+      const given = (e.given || []).map((g) => `<li>${g}</li>`).join("");
+      const steps = (e.steps || [])
+        .map(
+          (s, i) => `<div class="ex-step">
+            <div class="ex-step-no">${i + 1}</div>
+            <div class="ex-step-body">
+              ${s.text ? `<div class="ex-step-text">${s.text}</div>` : ""}
+              ${s.eq ? `<div class="ex-step-eq">$$${escapeLatex(s.eq)}$$</div>` : ""}
+            </div>
+          </div>`
+        )
+        .join("");
+      return `<div class="example">
+        <div class="ex-head"><span class="ex-badge">예제 ${ex.length > 1 ? idx + 1 : ""}</span></div>
+        <div class="ex-q">${e.q}</div>
+        ${given ? `<div class="ex-given"><span class="ex-label">주어진 조건</span><ul>${given}</ul></div>` : ""}
+        <div class="ex-sol"><span class="ex-label">풀이</span>${steps}</div>
+        ${e.answer ? `<div class="ex-answer"><span class="ex-label">답</span>${e.answer}</div>` : ""}
+        ${e.comment ? `<div class="ex-comment">${e.comment}</div>` : ""}
+      </div>`;
+    })
+    .join("");
+  return `<div class="field examples-field"><span class="label">⑫ 예제</span>${blocks}</div>`;
+}
+
 function openActItem(ch, part, item) {
   document.getElementById("welcome").hidden = true;
   document.getElementById("viewer").hidden = false;
@@ -429,6 +461,8 @@ function openActItem(ch, part, item) {
             ${ifrs.note ? `<div class="ifrs-note">${ifrs.note}</div>` : ""}
             ${ifrs.boundary ? `<div class="ifrs-boundary"><span class="boundary-label">연결의 한계 — 어디까지 같고 어디부터 다른가</span>${ifrs.boundary}</div>` : ""}
           </div>
+
+          ${renderExamples(item)}
 
           <p class="page-ref">출처 — 『최신보험수리학』 제${ch.num}장 ${ch.title} ${part.label}, p.${item.page} 내용을 참고하여 필자가 재구성 (원문 문장 인용 아님)</p>
         </div>
